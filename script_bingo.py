@@ -5,6 +5,7 @@ import random
 import pandas as pd
 import os
 from yt_dlp import YoutubeDL
+import yt_dlp
 
 
 # Bingo Game Class
@@ -53,28 +54,39 @@ class BingoGame:
             text_area.insert(tk.END, entry) 
 # Download Links
     def download_link(self):
+        self.index = 0
+        self.check_duplicate=[]
         try:
-            for index, item in enumerate(self.link):
-                timestamp = self.crop_time[index] if index < len(self.crop_time) else None
+            for item in self.link:
+                if item in self.check_duplicate:
+                    self.index += 1
+                    continue
+                else:
+                    start,end = (self.crop_time[self.index].split('-')[0]).strip(), (self.crop_time[self.index].split('-')[1]).strip()
+                    min,sec = start.split(':')
+                    start = int(min)*60 + int(sec)
+                    min,sec = end.split(':')
+                    end = int(min)*60 + int(sec)
 
-                ydl_opts = {
-                    'format': 'bestaudio/best',
-                    'noplaylist': True,  # download only this video
-                    'postprocessors': [{
-                        'key': 'FFmpegExtractAudio',
-                        'preferredcodec': 'mp3',
-                        'preferredquality': '192',
-                    }],
-                    'outtmpl': os.path.join('downloads', '%(title)s.%(ext)s'),
-                }
+                    ydl_opts = {
+                        'format': 'bestaudio/best',
+                        'noplaylist': True,  # download only this video
+                        'postprocessors': [{
+                            'key': 'FFmpegExtractAudio',
+                            'preferredcodec': 'mp3',
+                            'preferredquality': '192',
+                        }],
+                        'outtmpl': os.path.join('downloads', '%(title)s.%(ext)s'),
+                        'download_ranges':yt_dlp.utils.download_range_func([], [[start, end]]),
+                        
+                    }
+                    self.index += 1
+                    
 
-                # Add timestamp only if it exists
-                if timestamp and timestamp.strip():
-                    ydl_opts['download_sections'] = [f'*{timestamp}']
-                    print(timestamp)
 
-                with YoutubeDL(ydl_opts) as ydl:
-                    ydl.download([item])
+                    with YoutubeDL(ydl_opts) as ydl:
+                        ydl.download(item)
+                    self.check_duplicate.append(item)
 
             self.download_complete()
 
