@@ -3,6 +3,8 @@ from tkinter import messagebox
 from tkinter import filedialog
 import random
 import pandas as pd
+import os
+from yt_dlp import YoutubeDL
 
 
 # Bingo Game Class
@@ -21,11 +23,10 @@ class BingoGame:
         self.Button.bind("<Button-1>", lambda event: self.load_excel())
         self.Button.pack(pady=20)
         self.show_List = tk.Button(self.window, text = "Arata lista de meloy",command=self.show_list).pack(pady=20)
-
+        self.download_Button = tk.Button(self.window, text = "Descarca meloy",command=self.download_link).pack(pady=20)
     # Load Excel File
 
     def load_excel(self):
-        tk.filedialog.askopenfilename()
         file_path = tk.filedialog.askopenfilename()
         if file_path:
             try:
@@ -50,10 +51,39 @@ class BingoGame:
         for i in range(len(self.id)):
             entry = f"ID: {self.id[i]}, Name: {self.Names[i]}, Crop Time: {self.crop_time[i]}, Link: {self.link[i]}\n"
             text_area.insert(tk.END, entry) 
-        
+# Download Links
+    def download_link(self):
+        try:
+            for index, item in enumerate(self.link):
+                timestamp = self.crop_time[index] if index < len(self.crop_time) else None
 
-        
-        
+                ydl_opts = {
+                    'format': 'bestaudio/best',
+                    'noplaylist': True,  # download only this video
+                    'postprocessors': [{
+                        'key': 'FFmpegExtractAudio',
+                        'preferredcodec': 'mp3',
+                        'preferredquality': '192',
+                    }],
+                    'outtmpl': os.path.join('downloads', '%(title)s.%(ext)s'),
+                }
+
+                # Add timestamp only if it exists
+                if timestamp and timestamp.strip():
+                    ydl_opts['download_sections'] = [f'*{timestamp}']
+                    print(timestamp)
+
+                with YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([item])
+
+            self.download_complete()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to download files: {e}")
+
+    # Download Complete Notification
+    def download_complete(self):
+        messagebox.showinfo("Download Complete", "All files have been downloaded successfully!")
 
         
 
